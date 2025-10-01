@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(content=~{::section}, title='Moto')}">
+<section>
+    <h1 th:text="${form.id==null ? 'Nova Moto' : 'Editar Moto'}"></h1>
+
+    <form th:action="${form.id} == null ? @{/motos} : @{/motos/{id}(id=${form.id})}"
+          method="post" th:object="${form}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+        <label>Chassi <input th:field="*{chassi}"/></label>
+        <label>Placa  <input th:field="*{placa}"/></label>
+
+        <label>Modelo
+            <select th:field="*{modelo}">
+                <option th:each="m : ${modelos}" th:value="${m}" th:text="${m}"></option>
+            </select>
+        </label>
+
+        <label>Status
+            <select th:field="*{status}">
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"></option>
+            </select>
+        </label>
+
+        <button type="submit">Salvar</button>
+    </form>
+</section>
+</html>

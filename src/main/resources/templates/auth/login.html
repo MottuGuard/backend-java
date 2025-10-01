@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="pt-br">
+<th:block th:replace="~{fragments/_head :: head('Login')}"></th:block>
+<body>
+<main class="container">
+    <h1>Login</h1>
+    <form th:action="@{/login}" method="post">
+        <label>Email <input type="email" name="username" required></label>
+        <label>Senha <input type="password" name="password" required></label>
+        <button type="submit">Entrar</button>
+    </form>
+    <p><a th:href="@{/register}">Criar conta</a></p>
+    <div th:if="${param.error}">Credenciais inválidas.</div>
+    <div th:if="${param.logout}">Logout realizado.</div>
+</main>
+</body>
+</html>

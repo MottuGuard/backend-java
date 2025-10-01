@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(content=~{::section}, title='Vincular Tag')}">
+<section>
+    <h1>Vincular Tag</h1>
+    <form th:action="@{/motos/{id}/assign(id=${form.motoId})}" method="post" th:object="${form}">
+        <input type="hidden" th:field="*{motoId}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+        <label>Tag disponível
+            <select th:field="*{tagId}">
+                <option th:each="t : ${tags}" th:value="${t.id}" th:text="${t.eui64}"></option>
+            </select>
+        </label>
+
+        <button type="submit">Vincular</button>
+    </form>
+</section>
+</html>

@@ -1,0 +1,8 @@
+<nav th:fragment="nav" xmlns:th="http://www.thymeleaf.org">
+    <a th:href="@{/}">Dashboard</a>
+    <a th:href="@{/motos}">Motos</a>
+    <a th:href="@{/tags}">Tags</a>
+    <a th:href="@{/anchors}">Anchors</a>
+    <span style="flex:1"></span>
+    <form th:action="@{/logout}" method="post"><button>Logout</button></form>
+</nav>
