@@ -1,47 +1,76 @@
 package com.mottu.mottuguard.config;
-import com.mottu.mottuguard.models.User;
-import com.mottu.mottuguard.repository.UserRepo;
+
+import com.mottu.mottuguard.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
-    @Bean PasswordEncoder passwordEncoder(){ return new BCryptPasswordEncoder(); }
 
-    @Bean UserDetailsService uds(UserRepo users){
-        return username -> users.findByEmail(username)
-                .map(SecUser::new)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
-    static class SecUser implements UserDetails {
-        private final User u;
-        SecUser(User u){this.u=u;}
-        @Override public java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities(){
-            return u.getRoles().stream().map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_"+r.getName())).toList(); }
-        @Override public String getPassword(){return u.getPassword();}
-        @Override public String getUsername(){return u.getEmail();}
-        @Override public boolean isAccountNonExpired(){return true;}
-        @Override public boolean isAccountNonLocked(){return true;}
-        @Override public boolean isCredentialsNonExpired(){return true;}
-        @Override public boolean isEnabled(){return true;}
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 
-    @Bean SecurityFilterChain http(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login","/register","/css/**","/error").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/motos/**").hasAnyRole("SUPERVISOR","ADMIN")
-                        .anyRequest().authenticated())
-                .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
-                .logout(l -> l.logoutUrl("/logout").logoutSuccessUrl("/login?out").permitAll())
-                .csrf(Customizer.withDefaults());
+                        // Public endpoints
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+                        // Legacy web endpoints (optional, can be removed)
+                        .requestMatchers("/login", "/register", "/css/**").permitAll()
+                        // All other API endpoints require authentication
+                        .requestMatchers("/api/v1/**").authenticated()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "http://localhost:5173"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
